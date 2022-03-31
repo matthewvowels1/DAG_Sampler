@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def assign_string(adj_matrix):	# Assign a string to each node
     num_nodes = len(adj_matrix)
     strings_children = []
