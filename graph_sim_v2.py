@@ -2,12 +2,12 @@ import numpy as np
 import networkx as nx
 
 
-
 def dag_gen(num_nodes):
     '''
     :param num_nodes: number of desired nodes in sampled DAG (int)
     :return: canonical form: unique graph for isomorphic set [num_nodes x num_nodes]
     '''
+
     # calculate the number of elements in a lower triangular matrix num_nodes x num_nodes
     num_elements = num_nodes * (num_nodes - 1) / 2
     # randomly generate edges for graph
@@ -34,7 +34,6 @@ def dag_to_ug(dag):
         UG.add_edge(a + 1, a)
         a += 2
     return UG
-
 
 def generate_canonical_library(num_nodes, graph_history):
 
