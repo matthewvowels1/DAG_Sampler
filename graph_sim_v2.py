@@ -22,6 +22,11 @@ def dag_gen(num_nodes):
 
 
 def dag_to_ug(dag):
+    '''
+    Turns a directed graph into an undirected graph to facilitate isomorphic test
+    :param dag: directed acyclic graph (networkx MultiDiGraph object)
+    :return UG: undirected graph (networkx MultiDiGraph object)
+    '''
     num_nodes = dag.number_of_nodes()
     UG = nx.Graph()
     a = num_nodes
