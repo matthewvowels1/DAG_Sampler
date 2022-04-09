@@ -7,17 +7,21 @@ import random
 
 
 class DAGSampler:
-	'''
-	Object for sampling DAGs and ADMGs, as well as for sampling probabilities over edges.
-	:param num_nodes: number of <observed> nodes (int)
-	:param admg: whether to sample ADMGs with a random number of unobserved confounders (boolean)
-	'''
-	def __init__(self, library=None, num_nodes=3, admg=False):
+
+	def __init__(self, library=None, num_nodes=3, admg=False, seed=0):
+		'''
+		Object for sampling DAGs and ADMGs, as well as for sampling probabilities over edges.
+		:param num_nodes: number of <observed> nodes (int)
+		:param admg: whether to sample ADMGs with a random number of unobserved confounders (boolean)
+		:param seed: random seed
+		'''
 
 		assert isinstance(num_nodes, int), 'num_nodes should be an integer'
+		assert isinstance(seed, int), 'random seed should be an integer'
 		assert num_nodes > 0, 'num_nodes should be a positive integer'
 		assert isinstance(admg, bool), 'admg should be boolean'
 
+		np.random.seed(seed)
 
 		if library == None:
 			self.library = []
@@ -212,7 +216,6 @@ class DAGSampler:
 
 	def show_graph(self, graph, directed, weights=False):
 		# function for plotting a graph (directed or undirected)
-		labels = nx.get_edge_attributes(graph, 'weight')
 		pos = nx.spring_layout(graph)
 		nx.draw(graph, pos, node_size=500, with_labels=True, arrows=directed, connectionstyle='arc3, rad = 0.1')
 		if weights:
@@ -222,13 +225,14 @@ class DAGSampler:
 
 
 if __name__ == "__main__":
+	seed = 42
 	# A1. Example usage for DAGs (no unobserved confounders)
 	num_nodes = 3
 	admg = False
 	epsilon = 0.1  # minimum graph discovery rate
 
 	# A2. Initialise DAGSampling object:
-	ds = DAGSampler(library=None, num_nodes=num_nodes, admg=admg)
+	ds = DAGSampler(library=None, num_nodes=num_nodes, admg=admg, seed=seed)
 	# A3. generate canonical library:
 	library = ds.generate_library(plot=False, verbose=False, max_iters=200, epsilon=0.1)
 	print('Discovered {} unique DAGs.'.format(len(library)))
@@ -250,7 +254,7 @@ if __name__ == "__main__":
 	epsilon = 0.1  # minimum graph discovery rate
 
 	# B2. Initialise DAGSampling object:
-	ds = DAGSampler(library=None, num_nodes=num_nodes, admg=admg)
+	ds = DAGSampler(library=None, num_nodes=num_nodes, admg=admg, seed=seed)
 	# B3. generate canonical library of ADMGs (including unobserved confounders:
 	library = ds.generate_library(plot=False, verbose=False, max_iters=200, epsilon=0.1)
 	print('Discovered {} unique ADMGs.'.format(len(library)))
