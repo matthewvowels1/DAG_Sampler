@@ -7,7 +7,6 @@ import random
 
 
 class DAGSampler:
-
 	def __init__(self, library=None, num_nodes=3, admg=False, seed=0):
 		'''
 		Object for sampling DAGs and ADMGs, as well as for sampling probabilities over edges.
@@ -22,6 +21,7 @@ class DAGSampler:
 		assert isinstance(admg, bool), 'admg should be boolean'
 
 		np.random.seed(seed)
+		random.seed(seed)
 
 		if library == None:
 			self.library = []
@@ -82,6 +82,7 @@ class DAGSampler:
 			if verbose == True:
 				print('Graph already sampled.')
 			return None, already_sampled
+
 
 	def _dag_to_ug(self, d_graph):
 		'''
@@ -159,7 +160,6 @@ class DAGSampler:
 		assert (epsilon >= 0) and (epsilon <= 1), 'epsilon should be between 0 and 1'
 		assert max_iters > 0, 'max_iters should be a positive integer'
 
-
 		t = trange(max_iters, desc='Discovery Rate:', leave=True)
 		new_graphs = 0
 
@@ -226,7 +226,9 @@ class DAGSampler:
 
 if __name__ == "__main__":
 	seed = 42
-	# A1. Example usage for DAGs (no unobserved confounders)
+
+	# --------------- A. Example usage for DAGs (no unobserved confounders) ---------------
+	# A1. set params
 	num_nodes = 3
 	admg = False
 	epsilon = 0.1  # minimum graph discovery rate
@@ -247,8 +249,8 @@ if __name__ == "__main__":
 	edge_info = proba_graph.edges(data=True)
 	print(edge_info)
 
-
-	# B1. Example usage for ADMGS (includes unobserved confounders)
+	# --------------- B. Example usage for ADMGS (includes unobserved confounders) ---------------
+	# B1. set params
 	num_nodes = 3
 	admg = True
 	epsilon = 0.1  # minimum graph discovery rate
@@ -268,5 +270,3 @@ if __name__ == "__main__":
 	# B7. Get graph info
 	edge_info = proba_graph.edges(data=True)
 	print(edge_info)
-
-
