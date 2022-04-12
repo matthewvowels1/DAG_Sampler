@@ -223,6 +223,8 @@ class DAGSampler:
 				edge_w1 = edge[0][2]['weight']
 				edge_w2 = edge[1][2]['weight']
 				av_weight = (edge_w1 + edge_w2) / 2
+				if rounding:
+					av_weight = np.round(av_weight, decimals=1)
 				graph[node][from_][0]['weight'] = av_weight
 				graph[node][to_][0]['weight'] = av_weight
 
