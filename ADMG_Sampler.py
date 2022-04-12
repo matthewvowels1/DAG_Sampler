@@ -103,16 +103,19 @@ class DAGSampler:
 			a += 2
 		return UG
 
-	def _edge_probas(self, graph, costs=False):
+	def _edge_probas(self, graph, costs=False, rounding=False):
 		'''
 		Randomly samples edge probabilities for each edge in the inputted graph
 		:param graph: (MultiDiGraph object)
 		:param costs: whether to compute the weights as costs based on log(pe/(1-pe)) (boolean)
+		:param rounding: whether to quantise the edge weights to nearest decimal  (boolean)
 		:return probas: probabilities for each edge in the graph (always above 0.5)
 		'''
 		# gets edge probabilities
 		num_edges = len(graph.edges)
 		probas = np.random.uniform(0.5, 1, size=num_edges)
+		if rounding:
+			probas = np.round(probas, decimals=1)
 		if costs:
 			probas = np.log(probas/(1-probas))
 		return probas
@@ -201,9 +204,10 @@ class DAGSampler:
 		Adds weights to edges. If admg then it also ensures the two edges from each unobserved confounder have the same weight.
 		:param graph: graph for which to assign edge probabilities (nx.MultiDiGraph object)
 		:param costs: whether to compute the weights as costs based on log(pe/(1-pe)) (boolean)
+		:param rounding: whether to quantise the edge weights to nearest decimal (boolean)
 		:return graph:  graph with assigned edge probabilities (nx.MultiDiGraph object)
 		'''
-		edge_weights = self._edge_probas(graph=graph, costs=costs)
+		edge_weights = self._edge_probas(graph=graph, costs=costs, rounding=rounding)
 
 		for i, e in enumerate(graph.edges(data=True)):
 			from_ = e[0]
@@ -245,6 +249,7 @@ if __name__ == "__main__":
 	max_graphs = 100  # maximum number of desired canonical graphs to be sampled
 	costs = True  # whether to compute the weights as costs based on log(pe/(1-pe)) (boolean)
 	max_iters = 200
+	rounding = True  # whether to quantise the edge weights to nearest decimal (boolean)
 
 	# A2. Initialise DAGSampling object:
 	ds = DAGSampler(library=None, num_nodes=num_nodes, admg=admg, seed=seed)
@@ -255,7 +260,7 @@ if __name__ == "__main__":
 	# A4. Sample from library
 	graph = random.choice(library)
 	# A5. Assign edge probabilities
-	proba_graph = ds.edge_weighting(graph=graph, costs=costs)
+	proba_graph = ds.edge_weighting(graph=graph, costs=costs, rounding=rounding)
 	# A6. Show graph with randomly assigned edge probabilities
 	ds.show_graph(proba_graph, directed=True, weights=True)
 	# A7. Get graph info
@@ -270,6 +275,7 @@ if __name__ == "__main__":
 	epsilon = 0.1  # minimum graph discovery rate
 	max_graphs = 100  # maximum number of desired canonical graphs to be sampled
 	costs = True  # whether to compute the weights as costs based on log(pe/(1-pe)) (boolean)
+	rounding = True  # whether to quantise the edge weights to nearest decimal (boolean)
 
 	# B2. Initialise DAGSampling object:
 	ds = DAGSampler(library=None, num_nodes=num_nodes, admg=admg, seed=seed)
@@ -280,7 +286,7 @@ if __name__ == "__main__":
 	# B4. Sample from library
 	graph = random.choice(library)
 	# B5. Assign edge probabilities
-	proba_graph = ds.edge_weighting(graph=graph, costs=costs)
+	proba_graph = ds.edge_weighting(graph=graph, costs=costs, rounding=rounding)
 	# B6. Show graph with randomly assigned edge probabilities
 	ds.show_graph(proba_graph, directed=True, weights=True)
 	# B7. Get graph info
