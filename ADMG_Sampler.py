@@ -103,15 +103,18 @@ class DAGSampler:
 			a += 2
 		return UG
 
-	def _edge_probas(self, graph):
+	def _edge_probas(self, graph, costs=False):
 		'''
 		Randomly samples edge probabilities for each edge in the inputted graph
 		:param graph: (MultiDiGraph object)
+		:param costs: whether to compute the weights as costs based on log(pe/(1-pe)) (boolean)
 		:return probas: probabilities for each edge in the graph (always above 0.5)
 		'''
 		# gets edge probabilities
 		num_edges = len(graph.edges)
 		probas = np.random.uniform(0.5, 1, size=num_edges)
+		if costs:
+			probas = np.log(probas/(1-probas))
 		return probas
 
 	def _add_unobserved(self, graph):
@@ -150,15 +153,18 @@ class DAGSampler:
 		:param verbose: whether to print isomorphic check output (boolean)
 		:param max_iters: maximum number of graph searches (int)
 		:param epsilon: minimum discovery rate threshold
+		:param max_graphs: maximum number of desired graphs (int)
 		:return self.library: library of canonical graphs
 		'''
 
 		assert isinstance(max_iters, int), 'max_iters should be a positive integer'
+		assert isinstance(max_graphs, int), 'max_graphs should be a positive integer'
 		assert isinstance(plot, bool), 'plot should be boolean'
 		assert isinstance(verbose, bool), 'verbose should be boolean'
 		assert isinstance(epsilon, float), 'epsilon should be a positive float between 0 and 1'
 		assert (epsilon >= 0) and (epsilon <= 1), 'epsilon should be between 0 and 1'
 		assert max_iters > 0, 'max_iters should be a positive integer'
+		assert max_iters > 0, 'max_graphs should be a positive integer'
 
 		t = trange(max_iters, desc='Discovery Rate:', leave=True)
 		new_graphs = 0
@@ -190,13 +196,14 @@ class DAGSampler:
 				break
 		return self.library
 
-	def edge_weighting(self, graph):
+	def edge_weighting(self, graph, costs=True):
 		'''
 		Adds weights to edges. If admg then it also ensures the two edges from each unobserved confounder have the same weight.
 		:param graph: graph for which to assign edge probabilities (nx.MultiDiGraph object)
+		:param costs: whether to compute the weights as costs based on log(pe/(1-pe)) (boolean)
 		:return graph:  graph with assigned edge probabilities (nx.MultiDiGraph object)
 		'''
-		edge_weights = self._edge_probas(graph)
+		edge_weights = self._edge_probas(graph=graph, costs=costs)
 
 		for i, e in enumerate(graph.edges(data=True)):
 			from_ = e[0]
@@ -236,6 +243,7 @@ if __name__ == "__main__":
 	admg = False
 	epsilon = 0.1  # minimum graph discovery rate
 	max_graphs = 100  # maximum number of desired canonical graphs to be sampled
+	costs = True  # whether to compute the weights as costs based on log(pe/(1-pe)) (boolean)
 
 	# A2. Initialise DAGSampling object:
 	ds = DAGSampler(library=None, num_nodes=num_nodes, admg=admg, seed=seed)
@@ -246,7 +254,7 @@ if __name__ == "__main__":
 	# A4. Sample from library
 	graph = random.choice(library)
 	# A5. Assign edge probabilities
-	proba_graph = ds.edge_weighting(graph=graph)
+	proba_graph = ds.edge_weighting(graph=graph, costs=costs)
 	# A6. Show graph with randomly assigned edge probabilities
 	ds.show_graph(proba_graph, directed=True, weights=True)
 	# A7. Get graph info
@@ -258,7 +266,8 @@ if __name__ == "__main__":
 	num_nodes = 3
 	admg = True
 	epsilon = 0.1  # minimum graph discovery rate
-	max_graphs = 100  # maximum number of desired canonical graphs
+	max_graphs = 100  # maximum number of desired canonical graphs to be sampled
+	costs = True  # whether to compute the weights as costs based on log(pe/(1-pe)) (boolean)
 
 	# B2. Initialise DAGSampling object:
 	ds = DAGSampler(library=None, num_nodes=num_nodes, admg=admg, seed=seed)
@@ -269,7 +278,7 @@ if __name__ == "__main__":
 	# B4. Sample from library
 	graph = random.choice(library)
 	# B5. Assign edge probabilities
-	proba_graph = ds.edge_weighting(graph=graph)
+	proba_graph = ds.edge_weighting(graph=graph, costs=costs)
 	# B6. Show graph with randomly assigned edge probabilities
 	ds.show_graph(proba_graph, directed=True, weights=True)
 	# B7. Get graph info
