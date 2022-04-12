@@ -140,7 +140,7 @@ class DAGSampler:
 
 		return graph
 
-	def generate_library(self, plot=False, verbose=False, max_iters=100, epsilon=0.1):
+	def generate_library(self, plot=False, verbose=False, max_iters=100, epsilon=0.1, max_graphs=100):
 		'''
 		For a given number of maximum iterations, find the canonical graphs for a set of nodes. If self.admg == True
 		then this will also find the set of canonical graphs including unobserved confounders. Note that epislon is
@@ -184,6 +184,9 @@ class DAGSampler:
 
 			if q <= epsilon:
 				print('Graph discovery rate fallen below epsilon = {}'.format(epsilon))
+				break
+			elif len(self.library) > (max_graphs - 1):
+				print('Maximum desired number of graphs ({}) sampled succesfully.'.format(max_graphs))
 				break
 		return self.library
 
@@ -232,11 +235,12 @@ if __name__ == "__main__":
 	num_nodes = 3
 	admg = False
 	epsilon = 0.1  # minimum graph discovery rate
+	max_graphs = 100  # maximum number of desired canonical graphs to be sampled
 
 	# A2. Initialise DAGSampling object:
 	ds = DAGSampler(library=None, num_nodes=num_nodes, admg=admg, seed=seed)
 	# A3. generate canonical library:
-	library = ds.generate_library(plot=False, verbose=False, max_iters=200, epsilon=0.1)
+	library = ds.generate_library(plot=False, verbose=False, max_iters=200, epsilon=0.1, max_graphs=max_graphs)
 	print('Discovered {} unique DAGs.'.format(len(library)))
 
 	# A4. Sample from library
@@ -254,11 +258,12 @@ if __name__ == "__main__":
 	num_nodes = 3
 	admg = True
 	epsilon = 0.1  # minimum graph discovery rate
+	max_graphs = 100  # maximum number of desired canonical graphs
 
 	# B2. Initialise DAGSampling object:
 	ds = DAGSampler(library=None, num_nodes=num_nodes, admg=admg, seed=seed)
 	# B3. generate canonical library of ADMGs (including unobserved confounders:
-	library = ds.generate_library(plot=False, verbose=False, max_iters=200, epsilon=0.1)
+	library = ds.generate_library(plot=False, verbose=False, max_iters=200, epsilon=0.1, max_graphs=max_graphs)
 	print('Discovered {} unique ADMGs.'.format(len(library)))
 
 	# B4. Sample from library
