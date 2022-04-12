@@ -244,11 +244,12 @@ if __name__ == "__main__":
 	epsilon = 0.1  # minimum graph discovery rate
 	max_graphs = 100  # maximum number of desired canonical graphs to be sampled
 	costs = True  # whether to compute the weights as costs based on log(pe/(1-pe)) (boolean)
+	max_iters = 200
 
 	# A2. Initialise DAGSampling object:
 	ds = DAGSampler(library=None, num_nodes=num_nodes, admg=admg, seed=seed)
 	# A3. generate canonical library:
-	library = ds.generate_library(plot=False, verbose=False, max_iters=200, epsilon=0.1, max_graphs=max_graphs)
+	library = ds.generate_library(plot=False, verbose=False, max_iters=max_iters, epsilon=epsilon, max_graphs=max_graphs)
 	print('Discovered {} unique DAGs.'.format(len(library)))
 
 	# A4. Sample from library
@@ -265,6 +266,7 @@ if __name__ == "__main__":
 	# B1. set params
 	num_nodes = 3
 	admg = True
+	max_iters = 200
 	epsilon = 0.1  # minimum graph discovery rate
 	max_graphs = 100  # maximum number of desired canonical graphs to be sampled
 	costs = True  # whether to compute the weights as costs based on log(pe/(1-pe)) (boolean)
@@ -272,7 +274,7 @@ if __name__ == "__main__":
 	# B2. Initialise DAGSampling object:
 	ds = DAGSampler(library=None, num_nodes=num_nodes, admg=admg, seed=seed)
 	# B3. generate canonical library of ADMGs (including unobserved confounders:
-	library = ds.generate_library(plot=False, verbose=False, max_iters=200, epsilon=0.1, max_graphs=max_graphs)
+	library = ds.generate_library(plot=False, verbose=False, max_iters=max_iters, epsilon=epsilon, max_graphs=max_graphs)
 	print('Discovered {} unique ADMGs.'.format(len(library)))
 
 	# B4. Sample from library
