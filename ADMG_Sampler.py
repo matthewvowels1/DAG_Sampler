@@ -199,7 +199,7 @@ class DAGSampler:
 				break
 		return self.library
 
-	def edge_weighting(self, graph, costs=True):
+	def edge_weighting(self, graph, costs=True, rounding=False):
 		'''
 		Adds weights to edges. If admg then it also ensures the two edges from each unobserved confounder have the same weight.
 		:param graph: graph for which to assign edge probabilities (nx.MultiDiGraph object)
