@@ -6,6 +6,45 @@ import networkx as nx
 import random
 
 
+# construct a Graph object (for bidirected connections) and DiGraph object (for directed edges)
+def multigraph_to_digraph_graph(graph):
+	'''
+	Takes graph and splits it into a digraph (directed edges) and graph (bidirected edges)
+	:param graph ADMG (networkx MultiGraph object)
+	:return dig digraph containing directed edges (networkx DiGraph object)
+	:return g graph object representing bidirected edges (networkx Graph object)'''
+	dig = nx.DiGraph()
+	g = nx.Graph()
+
+	nodes = set(graph.nodes)
+	unobs_nodes = set([i for i in nodes if 'U' in str(i)])
+	obs_nodes = nodes - unobs_nodes
+
+	dig.add_nodes_from(obs_nodes)
+	g.add_nodes_from(obs_nodes)
+
+	edge_info = list(graph.edges(data=True))
+
+	# create directed graph (no unobserved variables)
+	for edge in edge_info:
+		from_ = edge[0]
+		to_ = edge[1]
+		weight = edge[2]['weight']
+
+		if ('U' not in str(from_)) and ('U' not in str(to_)):
+			dig.add_edge(from_, to_, weight=weight)
+
+	# create bidirected graph
+	for unobs_node in unobs_nodes:
+		edge_inf = list(graph.edges(unobs_node, data=True))
+		from_ = edge_inf[0][1]
+		to_ = edge_inf[1][1]
+		weight = edge_inf[0][2]['weight']
+		g.add_edge(from_, to_, weight=weight)
+
+	return dig, g
+
+
 class DAGSampler:
 	def __init__(self, library=None, num_nodes=3, admg=False, seed=0):
 		'''
