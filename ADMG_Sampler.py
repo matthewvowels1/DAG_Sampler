@@ -320,7 +320,7 @@ if __name__ == "__main__":
 	# A3. generate canonical library:
 	library = ds.generate_library(plot=False, verbose=False, max_iters=max_iters,
 	                              epsilon=epsilon, max_graphs=max_graphs, sparsity_param=sparsity_param)
-	print('Discovered {} unique DAGs.'.format(len(library)))
+	print('Discovered {} DAGs.'.format(len(library)))
 
 	# A4. Sample from library
 	graph = random.choice(library)
@@ -350,7 +350,7 @@ if __name__ == "__main__":
 	# B3. generate canonical library of ADMGs (including unobserved confounders:
 	library = ds.generate_library(plot=False, verbose=False, max_iters=max_iters, epsilon=epsilon,
 	                              max_graphs=max_graphs, sparsity_param=sparsity_param)
-	print('Discovered {} unique ADMGs.'.format(len(library)))
+	print('Discovered {} ADMGs.'.format(len(library)))
 
 	# B4. Sample from library
 	graph = random.choice(library)
