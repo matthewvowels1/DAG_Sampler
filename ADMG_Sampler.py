@@ -73,13 +73,14 @@ class DAGSampler:
 		# this is also the number of possible pairs
 		self.num_pairs = num_nodes * (num_nodes - 1) / 2
 
-	def _dag_gen(self, num_nodes):
+	def _dag_gen(self, num_nodes, sparsity_param=0.5):
 		'''
+		:param: sparsity_param: probability for sampling edges (can be log(num_nodes)/num_nodes) (float)
 		:param num_nodes: number of desired observed nodes in graph (int)
 		:return: graph (nx.MultiDiGraph objet)
 		'''
 		# randomly generate edges for graph
-		ran_lotril = np.random.randint(0, high=2, size=int(self.num_pairs))
+		ran_lotril = np.random.binomial(1, p=sparsity_param, size=int(self.num_pairs))
 
 		# populate the lower triangular matrix with the randomly generated edges
 		idx = np.tril_indices(num_nodes, k=-1)
@@ -87,16 +88,17 @@ class DAGSampler:
 		matrix[idx] = ran_lotril
 		return nx.from_numpy_matrix(matrix, create_using=nx.MultiDiGraph)
 
-	def _generate_canonical_library(self, num_nodes, graph_history, verbose=False):
+	def _generate_canonical_library(self, num_nodes, graph_history, verbose=False, sparsity_param=0.5):
 		'''
 		:param num_nodes: number of desired observed nodes in graph (int)
 		:param graph_history: a list of networkx MultiDiGraph objects which have previously been sampled (list[nx.MultiDiGraph])
 		:param verbose: whether to print out confirmation of isomorphic checks (boolean)
+		:param sparsity_param: probability for sampling edges (can be log(num_nodes)/num_nodes) (float)
 		:return: graph_nx: canonical graph (nx.MultiDiGraph object) if found, else None
 		:return: already_sampled: flag for whether most recently sampled graph already exists in the graph history / library
 		'''
 		# generate a networkx object digraph (DAG)
-		graph_nx = self._dag_gen(num_nodes=num_nodes)
+		graph_nx = self._dag_gen(num_nodes=num_nodes, sparsity_param=sparsity_param)
 
 		if self.admg:
 			graph_nx = self._add_unobserved(graph_nx)
@@ -159,15 +161,19 @@ class DAGSampler:
 			probas = np.log(probas/(1-probas))
 		return probas
 
-	def _add_unobserved(self, graph):
+	def _add_unobserved(self, graph, sparsity_param=None):
 		'''
 		Randomly selects the number of unobserved confounders to add between pairs of observed variables and
 		adds them to the graph. e.g. 1  2  becomes A <- U1 -> B
 		:param graph: directed graph with only <observed> variables (nx.MultiDiGraph object)
 		:return graph: directed graph with both observed <and> unobserved variables (nx.MultiDiGraph object)
 		'''
-		# pick number of unobserved
-		num_unobs = np.random.randint(1, self.num_nodes)  # at least one unobserved var for admg
+		# pick number of unobserved - maximum is number of possible pairs
+		num_unobs = np.random.randint(1, int(self.num_nodes * (self.num_nodes - 1) / 2))  # at least one unobserved var for admg
+
+		if sparsity_param != None:
+			num_unobs = int(2 * sparsity_param * num_unobs)
+
 		# list all nodes
 		nodes = np.arange(self.num_nodes)
 		# enumerate all possible pairs
@@ -185,7 +191,7 @@ class DAGSampler:
 
 		return graph
 
-	def generate_library(self, plot=False, verbose=False, max_iters=100, epsilon=0.1, max_graphs=100):
+	def generate_library(self, plot=False, verbose=False, max_iters=100, epsilon=0.1, max_graphs=100, sparsity_param=0.5):
 		'''
 		For a given number of maximum iterations, find the canonical graphs for a set of nodes. If self.admg == True
 		then this will also find the set of canonical graphs including unobserved confounders. Note that epislon is
@@ -195,6 +201,7 @@ class DAGSampler:
 		:param verbose: whether to print isomorphic check output (boolean)
 		:param max_iters: maximum number of graph searches (int)
 		:param epsilon: minimum discovery rate threshold
+		:param sparsity_param: probability for sampling edges (can be log(num_nodes)/num_nodes) (float)
 		:param max_graphs: maximum number of desired graphs (int)
 		:return self.library: library of canonical graphs
 		'''
@@ -204,7 +211,9 @@ class DAGSampler:
 		assert isinstance(plot, bool), 'plot should be boolean'
 		assert isinstance(verbose, bool), 'verbose should be boolean'
 		assert isinstance(epsilon, float), 'epsilon should be a positive float between 0 and 1'
-		assert (epsilon >= 0) and (epsilon <= 1), 'epsilon should be between 0 and 1'
+		assert isinstance(sparsity_param, float), 'sparsity_param should be a positive float between 0 and 1'
+		assert (epsilon >= 0) and (epsilon <= 1), 'epsilon should be a float between 0 and 1'
+		assert (sparsity_param >= 0) and (sparsity_param <= 1), 'epsilon should be a float between 0 and 1'
 		assert max_iters > 0, 'max_iters should be a positive integer'
 		assert max_iters > 0, 'max_graphs should be a positive integer'
 
@@ -215,7 +224,7 @@ class DAGSampler:
 
 			graph, already_sampled_flag = self._generate_canonical_library(num_nodes=self.num_nodes,
 			                                                               graph_history=self.library,
-			                                                               verbose=verbose)
+			                                                               verbose=verbose, sparsity_param=sparsity_param)
 
 			if (graph != None) and (plot == True):
 				self.show_graph(graph, directed=True)
@@ -291,11 +300,13 @@ if __name__ == "__main__":
 	costs = True  # whether to compute the weights as costs based on log(pe/(1-pe)) (boolean)
 	max_iters = 200
 	rounding = True  # whether to quantise the edge weights to nearest decimal (boolean)
+	sparsity_param = np.log(num_nodes) / num_nodes   # encourages sparsity in the canonical library as the number of nodes increases
 
 	# A2. Initialise DAGSampling object:
 	ds = DAGSampler(library=None, num_nodes=num_nodes, admg=admg, seed=seed)
 	# A3. generate canonical library:
-	library = ds.generate_library(plot=False, verbose=False, max_iters=max_iters, epsilon=epsilon, max_graphs=max_graphs)
+	library = ds.generate_library(plot=False, verbose=False, max_iters=max_iters,
+	                              epsilon=epsilon, max_graphs=max_graphs, sparsity_param=sparsity_param)
 	print('Discovered {} unique DAGs.'.format(len(library)))
 
 	# A4. Sample from library
