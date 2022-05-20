@@ -104,7 +104,7 @@ class DAGSampler:
 		graph_nx = self._dag_gen(num_nodes=num_nodes, sparsity_param=sparsity_param)
 
 		if self.admg:
-			graph_nx = self._add_unobserved(graph_nx)
+			graph_nx = self._add_unobserved(graph_nx, sparsity_param=sparsity_param)
 
 		ug_nx = self._dag_to_ug(graph_nx)  # transform sampled DAG into UG
 
@@ -123,11 +123,11 @@ class DAGSampler:
 				break
 
 		if not already_sampled:  # if we haven't already sampled this canonical form, return it
-			if verbose == True:
+			if verbose:
 				print('New graph found.')
 			return graph_nx, already_sampled
 		else:
-			if verbose == True:
+			if verbose:
 				print('Graph already sampled.')
 			return None, already_sampled
 
@@ -151,22 +151,15 @@ class DAGSampler:
 			a += 2
 		return UG
 
-	def _edge_probas(self, graph, costs=False, rounding=False):
+	def _edge_probas(self, graph):
 		'''
 		Randomly samples edge probabilities for each edge in the inputted graph
 		:param graph: (MultiDiGraph object)
-		:param costs: whether to compute the weights as costs based on log(pe/(1-pe)) (boolean)
-		:param rounding: whether to quantise the edge weights to nearest decimal  (boolean)
 		:return probas: probabilities for each edge in the graph (always above 0.5)
 		'''
 		# gets edge probabilities
 		num_edges = len(graph.edges)
-		probas = np.random.uniform(0.5, 1, size=num_edges)
-		if rounding:
-			probas = np.round(probas, decimals=1)
-		if costs:
-			np.seterr(divide='ignore')
-			probas = np.log(probas/(1-probas))
+		probas = np.random.uniform(0.51, 1, size=num_edges)
 		return probas
 
 	def _add_unobserved(self, graph, sparsity_param=None):
@@ -176,11 +169,13 @@ class DAGSampler:
 		:param graph: directed graph with only <observed> variables (nx.MultiDiGraph object)
 		:return graph: directed graph with both observed <and> unobserved variables (nx.MultiDiGraph object)
 		'''
+
 		# pick number of unobserved - maximum is number of possible pairs
 		num_unobs = np.random.randint(1, int(self.num_nodes * (self.num_nodes - 1) / 2))  # at least one unobserved var for admg
 
 		if sparsity_param != None:
 			num_unobs = int(2 * sparsity_param * num_unobs)
+
 
 		# list all nodes
 		nodes = np.arange(self.num_nodes)
@@ -228,10 +223,10 @@ class DAGSampler:
 		assert max_iters > 0, 'max_iters should be a positive integer'
 		assert max_iters > 0, 'max_graphs should be a positive integer'
 
-		t = trange(max_iters, desc='Discovery Rate:', leave=True)
+		# t = trange(max_iters, desc='Discovery Rate:', leave=True)
 		new_graphs = 0
 
-		for i in t:
+		for i in range(max_iters):  # change to for i in t to use tqdm
 
 			graph, already_sampled_flag = self._generate_canonical_library(num_nodes=self.num_nodes, noniso=nonisomorphic,
 			                                                               graph_history=self.library,
@@ -247,14 +242,16 @@ class DAGSampler:
 				self.library.append(graph)
 
 			q = new_graphs / (i + 1)  # new graph discovery rate
-			t.set_description("Discovery Rate: {})".format(np.round(q, 4)))
-			t.refresh()  # to show immediately the update
+			# t.set_description("Discovery Rate: {})".format(np.round(q, 4)))
+			# t.refresh()  # to show immediately the update
 
 			if q <= epsilon:
-				print('Graph discovery rate fallen below epsilon = {}'.format(epsilon))
+				if verbose:
+					print('Graph discovery rate fallen below epsilon = {}'.format(epsilon))
 				break
 			elif len(self.library) > (max_graphs - 1):
-				print('Maximum desired number of graphs ({}) sampled succesfully.'.format(max_graphs))
+				if verbose:
+					print('Maximum desired number of graphs ({}) sampled succesfully.'.format(max_graphs))
 				break
 		return self.library
 
@@ -267,12 +264,15 @@ class DAGSampler:
 		:return graph:  graph with assigned edge probabilities (nx.MultiDiGraph object)
 		'''
 
-		edge_weights = self._edge_probas(graph=graph, costs=costs, rounding=rounding)
+		if costs:
+			np.seterr(divide='ignore' )
+		edge_weights = self._edge_probas(graph=graph)
 
 		for i, e in enumerate(graph.edges(data=True)):
 			from_ = e[0]
 			to_ = e[1]
-			graph[from_][to_][0]['weight'] = edge_weights[i]
+			weight = edge_weights[i]
+			graph[from_][to_][0]['weight'] = weight
 
 		if self.admg:
 			U_nodes = [node for node in graph.nodes() if 'U' in str(node)]
@@ -284,9 +284,22 @@ class DAGSampler:
 				edge_w2 = edge[1][2]['weight']
 				av_weight = (edge_w1 + edge_w2) / 2
 				if rounding:
-					av_weight = np.round(av_weight, decimals=1)
+					av_weight = np.clip(np.round(av_weight, decimals=1), 0.51, 1.0)
+				if costs:
+					av_weight = np.log(av_weight / (1-av_weight))
 				graph[node][from_][0]['weight'] = av_weight
 				graph[node][to_][0]['weight'] = av_weight
+
+		for i, e in enumerate(graph.edges(data=True)):
+			from_ = e[0]
+			to_ = e[1]
+			if ('U' not in str(from_)) and ('U' not in str(to_)):
+				weight = graph[from_][to_][0]['weight']
+				if rounding:
+					weight = np.clip(np.round(weight, decimals=1), 0.51, 1.0)
+				if costs:
+					weight = np.log(weight / (1-weight))
+				graph[from_][to_][0]['weight'] = weight
 
 		return graph
 
@@ -320,7 +333,7 @@ if __name__ == "__main__":
 	# A3. generate canonical library:
 	library = ds.generate_library(plot=False, verbose=False, max_iters=max_iters,
 	                              epsilon=epsilon, max_graphs=max_graphs, sparsity_param=sparsity_param)
-	print('Discovered {} DAGs.'.format(len(library)))
+	print('Discovered {} unique DAGs.'.format(len(library)))
 
 	# A4. Sample from library
 	graph = random.choice(library)
@@ -350,7 +363,7 @@ if __name__ == "__main__":
 	# B3. generate canonical library of ADMGs (including unobserved confounders:
 	library = ds.generate_library(plot=False, verbose=False, max_iters=max_iters, epsilon=epsilon,
 	                              max_graphs=max_graphs, sparsity_param=sparsity_param)
-	print('Discovered {} ADMGs.'.format(len(library)))
+	print('Discovered {} unique ADMGs.'.format(len(library)))
 
 	# B4. Sample from library
 	graph = random.choice(library)
